@@ -1,0 +1,9 @@
+bcrypt
+streamlit
+requests
+python-dotenv
+pandas
+
+pydeck
+
+paho-mqtt
