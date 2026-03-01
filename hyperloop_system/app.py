@@ -20,7 +20,7 @@ from backend.lock_service import lock_pod, unlock_pod, get_lock_status
 
 from backend.telemetry_service import move_pod_forward
 
-from backend.control_service import set_control_state, set_desired_velocity
+from backend.control_service import set_control_state, set_desired_velocity, force_stop
 
 # PAGE CONFIG
 
@@ -559,6 +559,32 @@ def operator_dashboard():
         st.success(f"Target speed set to {desired_kmh} km/h")
 
     st.divider()
+
+    st.subheader("Pod Control")
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        if st.button("Retract Brakes / Start"):
+            # Move pod 30m forward
+            move_pod_forward(selected_pod, 30)
+
+            # Give small starting velocity (20 m/s)
+            set_desired_velocity(selected_pod, 20)
+
+            st.success("Brakes retracted. Pod advanced 30m and started.")
+            st.rerun()
+
+    with c2:
+        if st.button("Apply Brakes"):
+            set_desired_velocity(selected_pod, 0)
+            st.warning("Braking applied. Slowing down.")
+
+    with c3:
+        if st.button("Emergency Stop"):
+            force_stop(selected_pod)
+            st.error("Emergency stop activated.")
+            st.rerun()
 
     # -------- MAP --------
 

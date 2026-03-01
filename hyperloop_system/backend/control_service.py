@@ -39,7 +39,7 @@ def get_control_state(pod_name):
 
     return None
     
-def set_desired_velocity(pod_name, velocity):
+def set_desired_velocity(pod_name, velocity): #for setting a desired velocity .. p controller will take care to bring it to that speed
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -51,6 +51,20 @@ def set_desired_velocity(pod_name, velocity):
         DO UPDATE SET
             desired_velocity = excluded.desired_velocity
     """, (pod_name, velocity))
+
+    conn.commit()
+    conn.close()
+    
+def force_stop(pod_name): # for emergency braking
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE pod_controls
+        SET desired_velocity = 0
+        WHERE pod_name = ?
+    """, (pod_name,))
 
     conn.commit()
     conn.close()

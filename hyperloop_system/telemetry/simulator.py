@@ -113,7 +113,7 @@ def simulate():
             Kp_brake = 0.15        # stronger braking gain
             max_accel = 5.0        # m/s^2 cap
             max_brake = 8.0        # stronger brake cap
-            drag_coeff = 0.002     # aerodynamic drag constant
+            drag_coeff = 0.002     # aerodynamic drag constant -- will be very less for hyperloop and not proportional to square of velocity
 
             # -----------------------------
 
@@ -143,7 +143,7 @@ def simulate():
             state["velocity"] -= drag_coeff * state["velocity"]
 
             # Prevent negative velocity
-            if state["velocity"] < 0:
+            if state["velocity"] < 3:
                 state["velocity"] = 0
 
             packet = TelemetryPacket(
