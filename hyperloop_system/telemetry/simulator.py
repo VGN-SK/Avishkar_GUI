@@ -8,6 +8,8 @@ from telemetry.models import TelemetryPacket
 from backend.pod_service import get_all_pods
 from tracking.default_tracks import get_track
 
+from backend.control_service import get_control_state
+
 LOG_FILE = Path("data/telemetry_log.csv")
 SNAPSHOT_FILE = Path("data/latest_snapshot.csv")
 
@@ -105,6 +107,44 @@ def simulate():
             state["battery"] -= 0.01
             if state["battery"] < 20:
                 state["battery"] = 100
+
+            # ----- CONTROL CONSTANTS -----
+            Kp_accel = 0.08        # acceleration gain
+            Kp_brake = 0.15        # stronger braking gain
+            max_accel = 5.0        # m/s^2 cap
+            max_brake = 8.0        # stronger brake cap
+            drag_coeff = 0.002     # aerodynamic drag constant
+
+            # -----------------------------
+
+            desired_velocity = get_control_state(pod["name"])
+
+            if desired_velocity is not None:
+
+                error = desired_velocity - state["velocity"]
+
+                # Separate gains for accel and braking
+                if error > 0:
+                    acceleration = Kp_accel * error
+                else:
+                    acceleration = Kp_brake * error
+
+                # Acceleration cap
+                if acceleration > max_accel:
+                    acceleration = max_accel
+
+                if acceleration < -max_brake:
+                    acceleration = -max_brake
+
+                # Apply acceleration
+                state["velocity"] += acceleration
+
+            # Apply drag always
+            state["velocity"] -= drag_coeff * state["velocity"]
+
+            # Prevent negative velocity
+            if state["velocity"] < 0:
+                state["velocity"] = 0
 
             packet = TelemetryPacket(
                 pod_name=pod["name"],

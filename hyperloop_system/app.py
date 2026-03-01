@@ -16,7 +16,11 @@ from analysis.safety_limits import compute_safety_limits
 from tracking.mapper import get_all_pod_coordinates
 from tracking.default_tracks import get_track
 
+from backend.lock_service import lock_pod, unlock_pod, get_lock_status
 
+from backend.telemetry_service import move_pod_forward
+
+from backend.control_service import set_control_state, set_desired_velocity
 
 # PAGE CONFIG
 
@@ -473,6 +477,8 @@ def viewer_dashboard():
         })
 
         st.table(comparison_df)
+    else :
+        st.error("Select two different pods for comparison")
 
  
     # AUTO REFRESH
@@ -484,6 +490,119 @@ def viewer_dashboard():
 
 # ROUTING
 
+def operator_dashboard():
+
+    st.title("Operator Control Panel")
+
+    operator = st.session_state.user["username"]
+
+    pods = get_all_pods()
+    pod_names = [p["name"] for p in pods]
+
+    selected_pod = st.selectbox("Select Pod", pod_names)
+
+    is_locked, locked_by = get_lock_status(selected_pod)
+
+    if is_locked and locked_by != operator:
+        st.error(f"Pod locked by {locked_by}")
+        return
+
+    if not is_locked:
+        if st.button("Lock Pod"):
+            success, owner = lock_pod(selected_pod, operator)
+            if success:
+                st.success("Pod locked")
+                st.rerun()
+            else:
+                st.error(f"Locked by {owner}")
+        return
+
+    # -------- LOCKED VIEW --------
+
+    telemetry = get_latest_telemetry(selected_pod)
+
+    if not telemetry:
+        st.warning("No telemetry available")
+        return
+
+    st.subheader(f"Operating: {selected_pod}")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Velocity (m/s)", round(float(telemetry["velocity"]), 2))
+    with col2:
+        st.metric("Battery (%)", round(float(telemetry["battery"]), 2))
+    with col3:
+        st.metric("Position (m)", round(float(telemetry["position_m"]), 2))
+
+    st.divider()
+
+    # -------- SPEED CONTROL (PID) --------
+
+    current_kmh = float(telemetry["velocity"]) * 3.6
+
+    if "desired_speed" not in st.session_state:
+        st.session_state.desired_speed = int(current_kmh)
+
+    desired_kmh = st.slider(
+        "Set Desired Speed (km/h)",
+        0,
+        1200,
+        st.session_state.desired_speed,
+        step=10,
+        key="desired_speed"
+    )
+
+    if st.button("Apply Speed"):
+        set_desired_velocity(selected_pod, desired_kmh / 3.6)
+        st.success(f"Target speed set to {desired_kmh} km/h")
+
+    st.divider()
+
+    # -------- MAP --------
+
+    pod_meta = get_pod_by_name(selected_pod)
+    track = get_track(pod_meta["track_id"])
+
+    position = float(telemetry["position_m"])
+    lat, lon = track.get_coordinates(position)
+
+    track_path = [[wp.lon, wp.lat] for wp in track.waypoints]
+
+    track_layer = pdk.Layer(
+        "PathLayer",
+        data=[{"path": track_path}],
+        get_path="path",
+        get_width=8,
+        get_color=[0, 0, 200],
+    )
+
+    pod_layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=[{"lat": lat, "lon": lon}],
+        get_position="[lon, lat]",
+        get_radius=90,
+        get_fill_color=[255, 0, 0],
+    )
+
+    deck = pdk.Deck(
+        layers=[track_layer, pod_layer],
+        initial_view_state=pdk.ViewState(latitude=lat, longitude=lon, zoom=15),
+        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    )
+
+    st.pydeck_chart(deck)
+
+    st.divider()
+
+    if st.button("Release Pod"):
+        unlock_pod(selected_pod, operator)
+        st.rerun()
+
+    time.sleep(1)
+    st.rerun()
+    
 def main():
 
     if st.session_state.user is None:
@@ -503,7 +622,7 @@ def main():
         viewer_dashboard()
 
     elif role == "operator":
-        st.header("Operator Dashboard (PLS be patient ... under cooking)")
+        operator_dashboard()
 
     elif role == "controller":
         st.header("Controller Dashboard (PLS be patient ... under cooking)")
@@ -511,4 +630,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

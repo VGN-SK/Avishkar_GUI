@@ -61,6 +61,24 @@ def initialize_database():
             FOREIGN KEY(pod_id) REFERENCES pods(id)
         )
     """)
+    
+    # PODS LOCKING TABLE
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pod_locks (
+            pod_name TEXT PRIMARY KEY,
+            locked_by TEXT,
+            timestamp REAL
+        )
+        """)
+        
+    # PODS CONTROL TABLE
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pod_controls (
+        pod_name TEXT PRIMARY KEY,
+        desired_velocity REAL,
+        mode TEXT
+        )
+        """)
 
     conn.commit()
     conn.close()

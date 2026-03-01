@@ -4,6 +4,7 @@ A modular real-time monitoring dashboard for a simulated Hyperloop
 network. Built using Streamlit with a clean separation between UI,
 backend services, telemetry simulation, and track modeling.
 
+## ONE SMALL NOTE : I WAS MAINLY FOCUSED ON FUNCTIONALITY AND SIMULATIONS MIMICING REAL SYSTEMS SO THAT IT CAN BE INTEGRATED INTO ONE EASILY LATER. UI CAN BE DEVELOPED FURTHER TO LOOK GOOD. I FOCUSED ON MODULARITY AND FUNCTIONALITY MAINLY WITH A LOT OF EFFORS INTO MAKING THIS TRACK MODEL AND LIVE MAP
 ------------------------------------------------------------------------
 
 ## 1. Project Overview
@@ -11,7 +12,7 @@ backend services, telemetry simulation, and track modeling.
 This system simulates a Hyperloop fleet and provides:
 
 -   Role-based login (Viewer, Operator, Controller)
--   Real-time telemetry streaming
+-   Real-time telemetry streaming ( With some physics)
 -   Live map tracking with pod following
 -   Weather risk integration
 -   Safety limit computation
@@ -19,8 +20,7 @@ This system simulates a Hyperloop fleet and provides:
 -   Real geographic track modeling using Haversine distance
 -   Modular backend architecture
 
-Currently, the system focuses on monitoring (Viewer role). Operator and
-Controller features are under development.
+Currently, the system focuses on monitoring (Viewer role) and operating the pod ( Operator role). Controller features are under development.
 
 ------------------------------------------------------------------------
 
@@ -28,9 +28,68 @@ Controller features are under development.
 
 Project root directory:
 
-hyperloop_system/ │ ├── app.py ├── backend/ ├── telemetry/ ├── tracking/
-├── integration/ ├── analysis/ ├── data/ ├── requirements.txt ├──
-README.md └── venv/
+hyperloop_system
+│   ├── analysis
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   └── safety_limits.py
+│   ├── app.py
+│   ├── backend
+│   │   ├── auth_service.py
+│   │   ├── control_service.py
+│   │   ├── database.py
+│   │   ├── __init__.py
+│   │   ├── lock_service.py
+│   │   ├── pod_service.py
+│   │   ├── __pycache__
+│   │   ├── session_service.py
+│   │   ├── telemetry_service.py
+│   │   └── user_service.py
+│   ├── data
+│   │   ├── latest_snapshot.csv
+│   │   ├── telemetry_log.csv
+│   │   └── users.db
+│   ├── __init__.py
+│   ├── integration
+│   │   ├── energy_tips.py
+│   │   ├── fun_facts.py
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   ├── weather.py
+│   │   └── weather_test.py
+│   ├── __pycache__
+│   │   └── __init__.cpython-312.pyc
+│   ├── README.md
+│   ├── requirements.txt
+│   ├── setup.py
+│   ├── telemetry
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   ├── __pycache__
+│   │   └── simulator.py
+│   ├── test_auth.py
+│   ├── tracking
+│   │   ├── default_tracks.py
+│   │   ├── __init__.py
+│   │   ├── mapper.py
+│   │   ├── __pycache__
+│   │   ├── track_model.py
+│   │   └── waypoint.py
+│   └── venv
+│       ├── bin
+│       ├── etc
+│       ├── include
+│       ├── lib
+│       ├── lib64 -> lib
+│       ├── pyvenv.cfg
+│       └── share
+├── notes.txt
+└── paho-mqtt_communication
+    ├── mqtt.png
+    ├── publisher.py
+    └── subscriber.py
+
+33 directories, 52 files
 
 All commands must be executed from the project root directory:
 
@@ -104,9 +163,11 @@ Default Accounts:
 
 For now use:
 
-Username: viewer1 Password: viewerpass
+Username: viewer1 Password: viewerpass   for Viewer account
+and
+Username: operator1 Password: operatorpass   for Operator account
 
-Only the Viewer dashboard is almost fully functional at this stage.
+Viewer dashboard is almost fully functional at this stage and the Operator dashboard is also pretty functional with limited speed control.
 
 Dynamic user creation is not yet implemented.
 
@@ -147,7 +208,7 @@ This enables:  Accurate geographic scaling , Realistic track length
 measurement , Proper interpolation along curved paths , Foundation for
 ETA and energy modeling which will be integrated in future.
 
-Distance is calculated in meters using Earth radius approximation.
+Distance is calculated in metres using Earth radius approximation.
 
 ------------------------------------------------------------------------
 
@@ -184,6 +245,8 @@ Current - Levitation gap
 
 The simulator respects real track length using TrackModel.total_length.
 
+ALSO THE SIMULATOR GENERATES VELOCITY VALUE BASED ON A PROPORTIONAL FEEDBACK CONTROLLER TO MIMIC PHYSICS ... IN THIS CASE P CONTROLLER IS ENOUGH AS THERE IS NO INERTIA .. JUST SIMULATIONS
+
 ------------------------------------------------------------------------
 
 ## 12. Current Limitations
@@ -195,8 +258,10 @@ The following features are not yet implemented:
 -   Dynamic track creation
 -   Waypoint editing from UI
 -   Database-driven fleet management
--   Operator pod locking system
 -   Controller fleet-wide analytics dashboard
+-   The operator locking system should be strengthened further
+-   Direct weather updates should be displayed in a separate page ... currently its used only internally to compute safe speeds 
+
 
 These will be integrated in future updates.
 
@@ -224,11 +289,11 @@ This architecture allows future integration with:
 
 Upcoming improvements include:
 
--   Operator dashboard with pod locking
 -   Controller fleet overview
 -   Dynamic entity management
 -   ETA calculation
 -   Energy consumption modeling
+-   Realistic pod wear simulation
 
 ------------------------------------------------------------------------
 
